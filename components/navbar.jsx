@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 export default function Navbar() {
   return (
     <header className="flex h-16 w-full items-center justify-between px-4 md:px-6 bg-black text-white">
-      <Link href="#" className="flex items-center" prefetch={false}>
+      <Link href="/" className="flex items-center" prefetch={false}>
         <Image src="/biologo.png" alt="BioSafe" width={40} height={32} />
 		<div className="ml-2 text-[#35c184] font-bold text-2xl">BioSafe</div>
       </Link>

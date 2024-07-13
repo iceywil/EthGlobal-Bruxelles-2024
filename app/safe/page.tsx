@@ -11,11 +11,18 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useAccount } from 'wagmi'
-
+import { useState } from 'react'
 
 export default function Home() {
 	const { address, isConnecting, isDisconnected } = useAccount();
+	const [passkey, setPasskey] = useState(false);
 
+	const handleClick = (event: React.MouseEvent) => {
+		event.preventDefault();
+		if (passkey) setPasskey(false);
+		else
+			setPasskey(true);
+	};
 	return (
 		<main className="bg-black">
 			<Navbar />
@@ -26,23 +33,18 @@ export default function Home() {
 				<section className="grid grid-cols-1 gap-6 md:grid-cols-3">
 					<Card>
 						<CardHeader>
-							<CardTitle>Create a Smart Wallet with <span className="text-[#35c184]">Safe</span></CardTitle>
+							<CardTitle className="pl-2">Create a Smart Wallet with <span className="text-[#35c184]">Safe</span></CardTitle>
 						</CardHeader>
 						<CardContent>
 							<form className="grid gap-4">
 								<div className="grid gap-2">
-									<Label className="text-[#35c184]" htmlFor="name">Owner Wallet Address</Label>
-									<p  />{address}
+									<Label className="pl-2 text-[#35c184]" htmlFor="name">Owner Wallet Address</Label>
+									<div className="pl-2">{address}</div>
 								</div>
-								<div className="grid gap-2">
-									<Label htmlFor="email">Email</Label>
-									<Input id="email" type="email" placeholder="Enter your email" />
+								<div className="text-left">
+									<Button className={`pl-2 ${passkey ? 'bg-[#35c184]' : ''}`} type="submit" onClick={handleClick} >Enable PassKey</Button>
 								</div>
-								<div className="grid gap-2">
-									<Label htmlFor="message">Message</Label>
-									<Textarea id="message" placeholder="Enter your message" />
-								</div>
-								<Button type="submit">Submit</Button>
+								<Button className="font-bold border" type="submit">Deploy</Button>
 							</form>
 						</CardContent>
 					</Card>
@@ -56,14 +58,14 @@ export default function Home() {
 									<Label htmlFor="name">Smart Wallet Address</Label>
 									<Input id="name" placeholder="0x...." />
 								</div>
-								
+
 								<Button className="text-[#35c184] border" type="submit">Submit</Button>
 							</form>
 						</CardContent>
 					</Card>
 					<Card>
 						<CardHeader>
-							<CardTitle>Contact Information</CardTitle>
+							<CardTitle>Recover Smart Wallet with <span className="text-[#35c184]">World ID</span></CardTitle>
 						</CardHeader>
 						<CardContent>
 							<form className="grid gap-4">
@@ -79,11 +81,11 @@ export default function Home() {
 									<Label htmlFor="message">Message</Label>
 									<Textarea id="message" placeholder="Enter your message" />
 								</div>
-								<Button type="submit">Submit</Button>
+								<Button className="border" type="submit">Recover</Button>
 							</form>
 						</CardContent>
 					</Card>
-				</section>			
+				</section>
 			</div>
 		</main >
 	);
