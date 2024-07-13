@@ -1,5 +1,5 @@
 {
-  "name": "aka",
+  "name": "my-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.1.0",
     "@tanstack/react-query": "^5.51.1",
+    "@walletconnect/client": "^1.8.0",
+    "@walletconnect/web3-provider": "^1.8.0",
     "@web3modal/wagmi": "^5.0.6",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -17,11 +20,12 @@
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18",
-    "shadcn-ui": "^0.8.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "viem": "^2.17.3",
-    "wagmi": "^2.10.10"
+    "wagmi": "^2.10.10",
+    "walletconnect": "^1.7.8",
+    "web3": "^4.11.0"
   },
   "devDependencies": {
     "@types/node": "^20",
