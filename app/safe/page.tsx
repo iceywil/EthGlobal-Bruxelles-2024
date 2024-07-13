@@ -21,6 +21,7 @@ export default function Home() {
 	const handleClick = (event: React.MouseEvent) => {
 		event.preventDefault();
 		setPasskey(!passkey);
+		
 	};
 
 	const handleWorldID = (event: React.MouseEvent) => {
@@ -38,7 +39,7 @@ export default function Home() {
 					<Card className="justify-around">
 						<CardHeader>
 							<CardTitle className="pl-2">
-								<span className="text-[hsl(136,100%,66%)]">Create</span> a Smart Wallet with{" "}
+								<span className="text-[#52ff80]">Create</span> a Smart Wallet with{" "}
 								<span className="text-[#35c184]">Safe</span>
 							</CardTitle>
 						</CardHeader>
@@ -52,7 +53,7 @@ export default function Home() {
 								</div>
 								<div className="text-left pl-2">
 									<Button
-										className={`border font-bold ${passkey ? "bg-[#35c184]" : ""}`}
+										className={`border font-bold ${passkey ? "bg-green-600" : ""}`}
 										type="submit"
 										onClick={handleClick}
 									>
