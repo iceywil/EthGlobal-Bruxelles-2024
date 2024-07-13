@@ -22,7 +22,7 @@ contract DeployModuleScript is Script, RegistryDeployer {
         address module = deployModule({
             code: bytecode,
             deployParams: deployParams,
-            salt: bytes32(0),
+            salt: bytes32(uint256(10)),
             data: data
         });
 
