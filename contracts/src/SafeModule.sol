@@ -27,7 +27,17 @@ contract SafeModule is ERC7579ModuleBase {
     mapping(address => bool) internal moduleEnableds;
     mapping(address => mapping(address => uint256)) internal proofsPerAccount;
 
+    // mapping for recovery proc
+    mapping(address => mapping(address => uint256)) internal recoveryThresholds;
+    mapping(address => mapping(address => uint256)) internal currentSignatures;
+    mapping(address => mapping(address => bool)) internal authorizedSigners;
+
     event Verified(uint256 nullifierHash);
+
+    // event for recovery proc
+    event RecoveryThresholdChanged(address indexed smartAccount, address indexed signer, uint256 newThreshold);
+    event RecoverUserAdded(address indexed smartAccount, address indexed signer);
+    event RecoverUserRemoved(address indexed smartAccount, address indexed signer);
 
     constructor(IWorldID _worldId, string memory _appId, string memory _actionId) {
         worldId = _worldId;
@@ -85,12 +95,13 @@ contract SafeModule is ERC7579ModuleBase {
      *
      */
     function recover(
+        address payable account,
         address signal,
         uint256 root,
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
-        external
+    external
     {
         if (nullifierHashes[nullifierHash]) revert DuplicateNullifier(nullifierHash);
         // check if person has the recovery enabled
@@ -108,6 +119,49 @@ contract SafeModule is ERC7579ModuleBase {
             ),
             Enum.Operation.Call
         );
+    }
+
+
+    function addRecoverUser(address smartAccount, address signer) external {
+        require(moduleEnableds[smartAccount], "Module not enabled for this account");
+        require(msg.sender == signer, "Not authorized to add recover user");
+        authorizedSigners[smartAccount][signer] = true;
+        emit RecoverUserAdded(smartAccount, signer);
+    }
+
+    function removeRecoverUser(address smartAccount, address signer) external {
+        require(moduleEnableds[smartAccount], "Module not enabled for this account");
+        require(msg.sender == signer, "Not authorized to remove recover user");
+        authorizedSigners[smartAccount][signer] = false;
+        emit RecoverUserRemoved(smartAccount, signer);
+    }
+
+    /**
+     * Change the recovery threshold for a specific signer of a smart account
+     * @param smartAccount The smart account for which to change the threshold
+     * @param signer The signer for whom to change the threshold
+     * @param newThreshold The new threshold of required signatures
+     */
+
+    // faire un mapping de smart account, le signer qu'on veut recover, et double mapping vers un uint (nb de thresold requis) et autre mapping qui store le nb de signature actuell
+    function changeRecoveryThreshold(address payable smartAccount, address signer, uint256 newThreshold) external {
+        require(msg.sender == signer, "Not authorized to change recovery threshold");
+
+        address[] memory signers = SafeL2(smartAccount).getOwners();
+        bool isSigner = false;
+
+        for (uint256 i = 0; i < signers.length; i++) {
+            if (signers[i] == signer) {
+                isSigner = true;
+                break;
+            }
+        }
+
+        require(isSigner, "Signer not authorized for this account");
+        require(moduleEnableds[smartAccount], "Module not enabled for this account");
+
+        recoveryThresholds[smartAccount][signer] = newThreshold;
+        emit RecoveryThresholdChanged(smartAccount, signer, newThreshold);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
