@@ -39,7 +39,7 @@ export default function Navbar() {
           Pricing
         </Link>
       </nav>
-      <Button className="text-black bg-[#35c184] text-base">Connect</Button>
+	  <w3m-button />
     </header>
   )
 }
