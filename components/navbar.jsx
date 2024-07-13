@@ -9,7 +9,7 @@ export default function Navbar() {
         <Image src="/biologo.png" alt="BioSafe" width={40} height={32} />
 		<div className="ml-2 text-[#35c184] font-bold text-2xl">BioSafe</div>
       </Link>
-      <nav className="flex items-center gap-4">
+      <nav className="flex items-center gap-4" style={{ paddingRight: '50px' }}>
         <Link
           href="#"
           className="inline-flex h-9 items-center justify-center rounded-md px-4 py-2 text-base font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
