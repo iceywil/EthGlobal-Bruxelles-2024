@@ -23,11 +23,15 @@ contract SafeModule is ERC7579ModuleBase {
 
     uint256 internal immutable groupId = 1;
 
-    mapping(uint256 => bool) internal nullifierHashes;
     mapping(address => bool) internal moduleEnableds;
+    // smartAccount => signer => proofs number
     mapping(address => mapping(address => uint256)) internal proofsPerAccount;
+    // smartAccount => signer => nullifierHash => authorized
+    mapping(address => mapping(address => mapping(uint256 => bool))) internal
+        recoveryEnabledForNullifier;
 
-    event Verified(uint256 nullifierHash);
+    event ModuleInitialized(address indexed smartAccount);
+    event ModuleUninitialized(address indexed smartAccount);
 
     constructor(IWorldID _worldId, string memory _appId, string memory _actionId) {
         worldId = _worldId;
@@ -44,8 +48,17 @@ contract SafeModule is ERC7579ModuleBase {
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
-        // set mapping address => bool to true for the caller
+        if (isInitialized(msg.sender)) {
+            if (data.length == 0) {
+                return;
+            } else {
+                revert("ModuleAlreadyInitialized");
+            }
+        }
+
         moduleEnableds[msg.sender] = true;
+
+        emit ModuleInitialized(msg.sender);
     }
 
     /**
@@ -54,8 +67,10 @@ contract SafeModule is ERC7579ModuleBase {
      * @param data The data to de-initialize the module with
      */
     function onUninstall(bytes calldata data) external override {
-        // set mapping address => bool to false if the account has enabled recovery
+        require(isInitialized(msg.sender), "Module already uninstalled");
         moduleEnableds[msg.sender] = false;
+
+        emit ModuleUninitialized(msg.sender);
     }
 
     /**
@@ -65,7 +80,6 @@ contract SafeModule is ERC7579ModuleBase {
      * @return true if the module is initialized, false otherwise
      */
     function isInitialized(address smartAccount) external view returns (bool) {
-        // check in the mapping address => bool if the module is enabled
         return moduleEnableds[smartAccount];
     }
 
@@ -78,36 +92,73 @@ contract SafeModule is ERC7579ModuleBase {
                                      MODULE LOGIC
     //////////////////////////////////////////////////////////////////////////*/
 
-    /**
-     * Execute the given data
-     * @dev This is an example function that can be used to execute arbitrary data
-     * @dev This function is not part of the ERC-7579 standard
-     *
-     */
-    function recover(
-        address signal,
+    function setupRecovery(
+        address smartAccount,
         uint256 root,
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
         external
     {
-        if (nullifierHashes[nullifierHash]) revert DuplicateNullifier(nullifierHash);
-        // check if person has the recovery enabled
+        // check if msg.sender is member of the safe
+        // think about logic
+        require(proofsPerAccount[smartAccount][msg.sender] == 0, "Recovery already configurated");
+        require(recoveryEnabledForNullifier[smartAccount][msg.sender][nullifierHash], "Fuck");
 
-        nullifierHashes[nullifierHash] = true;
-
-        SafeL2(account).execTransactionFromModule(
-            account,
-            0,
-            abi.encodeWithSelector(
-                SafeL2(account).swapOwner.selector,
-                0x0000000000000000000000000000000000000001, // get value before in the linked list
-                0xAfE56A12c037f3787637CDB7DeEcacf3080cb35d, // get the old wallet linked to the id
-                msg.sender
-            ),
-            Enum.Operation.Call
+        worldId.verifyProof(
+            root,
+            groupId,
+            abi.encodePacked(signal).hashToField(),
+            nullifierHash,
+            externalNullifierHash,
+            proof
         );
+
+        proofsPerAccount[smartAccount][msg.sender] = 1;
+    }
+
+    /**
+     * Execute the given data
+     * @dev This is an example function that can be used to execute arbitrary data
+     * @dev This function is not part of the ERC-7579 standard
+     *
+     */
+    function tryRecover(
+        address smartAccount,
+        address signerToSwap,
+        uint256 root,
+        uint256 nullifierHash,
+        uint256[8] calldata proof
+    )
+        external
+    {
+        // check if signerToSwap has recovery enabled
+        require(
+            recoveryEnabledForNullifier[smartAccount][signerToSwap][nullifierHash],
+            "Fuck nullifier can't recover this signer"
+        );
+
+        worldId.verifyProof(
+            root,
+            groupId,
+            abi.encodePacked(signal).hashToField(),
+            nullifierHash,
+            externalNullifierHash,
+            proof
+        );
+
+        // if tryRecoveryCount == treshold => exec the swap
+        // SafeL2(account).execTransactionFromModule(
+        //     account,
+        //     0,
+        //     abi.encodeWithSelector(
+        //         SafeL2(account).swapOwner.selector,
+        //         0x0000000000000000000000000000000000000001,
+        //         0xAfE56A12c037f3787637CDB7DeEcacf3080cb35d,
+        //         msg.sender
+        //     ),
+        //     Enum.Operation.Call
+        // );
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -144,6 +195,6 @@ contract SafeModule is ERC7579ModuleBase {
      * @return true if the module is of the given type, false otherwise
      */
     function isModuleType(uint256 typeID) external pure override returns (bool) {
-        return true;
+        return typeID == TYPE_HOOK;
     }
 }
