@@ -7,6 +7,7 @@ import React, { ReactNode } from 'react'
 import { config, projectId } from '@/config'
 
 import { createWeb3Modal } from '@web3modal/wagmi/react'
+import { baseSepolia } from 'viem/chains'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -20,6 +21,7 @@ if (!projectId) throw new Error('Project ID is not defined')
 // Create modal
 createWeb3Modal({
   wagmiConfig: config,
+  defaultChain: baseSepolia,
   projectId,
   enableAnalytics: true, // Optional - defaults to your Cloud configuration
   enableOnramp: true, // Optional - false as default
