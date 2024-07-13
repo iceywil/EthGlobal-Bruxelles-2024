@@ -12,12 +12,6 @@ import {
 } from 'wagmi';
 import { ethers } from 'ethers';
 
-const getAddress = () => {
-    // todo get address from wallet connect
-    const [address, setAddress] = useState('0x1234567890abcdef'); // Example address
-    return { address };
-};
-
 const onSuccess = (response: any) => {
     console.log('Proof Generated:', response);
 
@@ -55,7 +49,7 @@ const verifyProof = (proof: any) => {
 }
 
 const ProofComponent = () => {
-    const { address } = getAddress(); // Get the user's wallet address
+    const { address } = useAccount(); // Extract address from useAccount
 
     return (
         <IDKitWidget
