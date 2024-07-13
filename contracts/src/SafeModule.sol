@@ -24,7 +24,8 @@ contract SafeModule is ERC7579ModuleBase {
     uint256 internal immutable groupId = 1;
 
     mapping(uint256 => bool) internal nullifierHashes;
-    mapping(address => bool) internal nullifierHashes;
+    mapping(address => bool) internal moduleEnableds;
+    mapping(address => mapping(address => uint256)) internal proofsPerAccount;
 
     event Verified(uint256 nullifierHash);
 
@@ -44,6 +45,7 @@ contract SafeModule is ERC7579ModuleBase {
      */
     function onInstall(bytes calldata data) external override {
         // set mapping address => bool to true for the caller
+        moduleEnableds[msg.sender] = true;
     }
 
     /**
@@ -53,6 +55,7 @@ contract SafeModule is ERC7579ModuleBase {
      */
     function onUninstall(bytes calldata data) external override {
         // set mapping address => bool to false if the account has enabled recovery
+        moduleEnableds[msg.sender] = false;
     }
 
     /**
@@ -63,10 +66,12 @@ contract SafeModule is ERC7579ModuleBase {
      */
     function isInitialized(address smartAccount) external view returns (bool) {
         // check in the mapping address => bool if the module is enabled
+        return moduleEnableds[smartAccount];
     }
 
-    function isRecoveryEnabled(address signer) external view returns (bool) {
+    function isRecoveryEnabled(address smartAccount, address signer) external view returns (bool) {
         // check in the mapping address => bool if the recovery is enabled from a signer
+        return proofsPerAccount[smartAccount][signer] > 0;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
