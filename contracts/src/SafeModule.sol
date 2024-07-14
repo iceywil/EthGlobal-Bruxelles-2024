@@ -11,7 +11,8 @@ import { IWorldID } from "./interfaces/IWorldID.sol";
 
 /**
  * @title SafeModule
- * @dev A module for managing recovery and inheritance for Safe accounts using WorldID and biometrics.
+ * @dev A module for managing recovery and inheritance for Safe accounts using WorldID and
+ * biometrics.
  */
 contract SafeModule is ERC7579ModuleBase {
     using ByteHasher for bytes;
@@ -142,16 +143,18 @@ contract SafeModule is ERC7579ModuleBase {
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
-    external
-    isModuleEnabled(smartAccount)
-    isSafeSigner(smartAccount, msg.sender)
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
     {
-        if (smartAccounts[smartAccount].signers[msg.sender].recoveryEnabled) revert("Recovery already configurated");
+        if (smartAccounts[smartAccount].signers[msg.sender].recoveryEnabled) {
+            revert("Recovery already configurated");
+        }
 
         worldId.verifyProof(
             root,
             groupId,
-            abi.encodePacked(msg.sender).hashToField(),
+            abi.encodePacked(address(0)).hashToField(),
             nullifierHash,
             externalNullifier,
             proof
@@ -167,11 +170,13 @@ contract SafeModule is ERC7579ModuleBase {
      * @param smartAccount The smart account to disable recovery for
      */
     function disableRecovery(address smartAccount)
-    external
-    isModuleEnabled(smartAccount)
-    isSafeSigner(smartAccount, msg.sender)
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
     {
-        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) {
+            revert("Recovery not enabled for this signer");
+        }
         delete smartAccounts[smartAccount].signers[msg.sender];
     }
 
@@ -190,12 +195,17 @@ contract SafeModule is ERC7579ModuleBase {
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
-    external
-    isModuleEnabled(smartAccount)
-    isSafeSigner(smartAccount, signerToRecover)
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, signerToRecover)
     {
-        if (!isRecoveryEnabled(smartAccount, signerToRecover)) revert("Recovery not enabled for this signer");
-        if (!smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash]) revert("User not authorized to recover this signer");
+        if (!isRecoveryEnabled(smartAccount, signerToRecover)) {
+            revert("Recovery not enabled for this signer");
+        }
+        if (!smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash])
+        {
+            revert("User not authorized to recover this signer");
+        }
 
         worldId.verifyProof(
             root,
@@ -210,7 +220,7 @@ contract SafeModule is ERC7579ModuleBase {
 
         if (
             smartAccounts[smartAccount].signers[signerToRecover].signaturesCount
-            == smartAccounts[smartAccount].signers[signerToRecover].recoveryTreshold
+                == smartAccounts[smartAccount].signers[signerToRecover].recoveryTreshold
         ) {
             SafeL2(payable(smartAccount)).execTransactionFromModule(
                 smartAccount,
@@ -239,12 +249,16 @@ contract SafeModule is ERC7579ModuleBase {
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
-    external
-    isModuleEnabled(smartAccount)
-    isSafeSigner(smartAccount, msg.sender)
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
     {
-        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
-        if (smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash]) revert("User already added to the list of recoverants");
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) {
+            revert("Recovery not enabled for this signer");
+        }
+        if (smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash]) {
+            revert("User already added to the list of recoverants");
+        }
 
         worldId.verifyProof(
             root,
@@ -269,14 +283,20 @@ contract SafeModule is ERC7579ModuleBase {
         address smartAccount,
         uint256 nullifierHash
     )
-    external
-    isModuleEnabled(smartAccount)
-    isSafeSigner(smartAccount, msg.sender)
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
     {
-        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
-        if (!smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash]) revert("User not in the list of recoverants");
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) {
+            revert("Recovery not enabled for this signer");
+        }
+        if (!smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash])
+        {
+            revert("User not in the list of recoverants");
+        }
 
-        smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] = false;
+        smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] =
+            false;
 
         emit RecoverUserRemoved(smartAccount, msg.sender);
     }
@@ -290,11 +310,13 @@ contract SafeModule is ERC7579ModuleBase {
         address payable smartAccount,
         uint256 newThreshold
     )
-    external
-    isModuleEnabled(smartAccount)
-    isSafeSigner(smartAccount, msg.sender)
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
     {
-        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) {
+            revert("Recovery not enabled for this signer");
+        }
         if (newThreshold <= 0) revert("Threshold cannot be lower or equal to 0");
 
         smartAccounts[smartAccount].signers[msg.sender].recoveryTreshold = newThreshold;
