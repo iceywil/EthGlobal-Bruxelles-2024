@@ -54,10 +54,10 @@ contract SafeModule is ERC7579ModuleBase {
     event RecoverUserRemoved(address indexed smartAccount, address indexed signer);
 
     constructor() {
-        worldId = IWorldID(0x469449f251692E0779667583026b5A1E99512157);
+        worldId = IWorldID(0xfd23A8125eBb88C639CD1DDdd76cd0Bce78BE8d9);
         externalNullifier = abi.encodePacked(
             abi.encodePacked("app_staging_bb04a3642c04eeac26c5098e96879d83").hashToField(),
-            "init-safe"
+            "biosafe"
         ).hashToField();
     }
 
