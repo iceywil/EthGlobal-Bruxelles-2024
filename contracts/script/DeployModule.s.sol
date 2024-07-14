@@ -19,15 +19,10 @@ contract DeployModuleScript is Script, RegistryDeployer {
         vm.startBroadcast(vm.envUint("PK"));
 
         // Deploy module
-        address module = deployModule({
-            code: bytecode,
-            deployParams: deployParams,
-            salt: bytes32(uint256(10)),
-            data: data
-        });
+        SafeModule module = new SafeModule();
 
         // Stop broadcast and log module address
         vm.stopBroadcast();
-        console.log("Deploying module at: %s", module);
+        console.log("Deploying module at: %s", address(module));
     }
 }

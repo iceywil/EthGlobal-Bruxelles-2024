@@ -15,28 +15,45 @@ contract SafeModule is ERC7579ModuleBase {
     /*//////////////////////////////////////////////////////////////////////////
                             CONSTANTS & STORAGE
     //////////////////////////////////////////////////////////////////////////*/
-    error DuplicateNullifier(uint256 nullifierHash);
-
     IWorldID internal immutable worldId;
 
     uint256 internal immutable externalNullifier;
 
     uint256 internal immutable groupId = 1;
 
-    mapping(address => bool) internal moduleEnableds;
-    // smartAccount => signer => proofs number
-    mapping(address => mapping(address => uint256)) internal proofsPerAccount;
-    // smartAccount => signer => nullifierHash => authorized
-    mapping(address => mapping(address => mapping(uint256 => bool))) internal
-        recoveryEnabledForNullifier;
+    struct Signer {
+        uint256 recoveryTreshold;
+        uint256 signaturesCount;
+        bool recoveryEnabled;
+        mapping(uint256 => bool) nullifierHashesTrusted;
+    }
+
+    struct SmartAccount {
+        mapping(address => Signer) signers;
+        bool moduleEnabled;
+    }
+
+    mapping(address => SmartAccount) internal smartAccounts;
 
     event ModuleInitialized(address indexed smartAccount);
     event ModuleUninitialized(address indexed smartAccount);
+    // mapping for recovery proc
 
-    constructor(IWorldID _worldId, string memory _appId, string memory _actionId) {
-        worldId = _worldId;
-        externalNullifier =
-            abi.encodePacked(abi.encodePacked(_appId).hashToField(), _actionId).hashToField();
+    event Verified(uint256 nullifierHash);
+
+    // event for recovery proc
+    event RecoveryThresholdChanged(
+        address indexed smartAccount, address indexed signer, uint256 newThreshold
+    );
+    event RecoverUserAdded(address indexed smartAccount, address indexed signer);
+    event RecoverUserRemoved(address indexed smartAccount, address indexed signer);
+
+    constructor() {
+        worldId = IWorldID(0x469449f251692E0779667583026b5A1E99512157);
+        externalNullifier = abi.encodePacked(
+            abi.encodePacked("app_staging_bb04a3642c04eeac26c5098e96879d83").hashToField(),
+            "init-safe"
+        ).hashToField();
     }
     /*//////////////////////////////////////////////////////////////////////////
                                      CONFIG
@@ -48,15 +65,15 @@ contract SafeModule is ERC7579ModuleBase {
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
-        if (isInitialized(msg.sender)) {
-            if (data.length == 0) {
-                return;
-            } else {
-                revert("ModuleAlreadyInitialized");
-            }
-        }
+        // if (isInitialized(msg.sender)) {
+        //     if (data.length == 0) {
+        //         return;
+        //     } else {
+        //         revert("ModuleAlreadyInitialized");
+        //     }
+        // }
 
-        moduleEnableds[msg.sender] = true;
+        smartAccounts[msg.sender].moduleEnabled = true;
 
         emit ModuleInitialized(msg.sender);
     }
@@ -68,7 +85,10 @@ contract SafeModule is ERC7579ModuleBase {
      */
     function onUninstall(bytes calldata data) external override {
         require(isInitialized(msg.sender), "Module already uninstalled");
-        moduleEnableds[msg.sender] = false;
+
+        smartAccounts[msg.sender].moduleEnabled = false;
+
+        delete smartAccounts[msg.sender];
 
         emit ModuleUninitialized(msg.sender);
     }
@@ -79,18 +99,35 @@ contract SafeModule is ERC7579ModuleBase {
      *
      * @return true if the module is initialized, false otherwise
      */
-    function isInitialized(address smartAccount) external view returns (bool) {
-        return moduleEnableds[smartAccount];
+    function isInitialized(address smartAccount) public view returns (bool) {
+        return smartAccounts[smartAccount].moduleEnabled;
     }
 
-    function isRecoveryEnabled(address smartAccount, address signer) external view returns (bool) {
-        // check in the mapping address => bool if the recovery is enabled from a signer
-        return proofsPerAccount[smartAccount][signer] > 0;
+    function isRecoveryEnabled(address smartAccount, address signer) public view returns (bool) {
+        return smartAccounts[smartAccount].signers[signer].recoveryEnabled;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                                      MODULE LOGIC
     //////////////////////////////////////////////////////////////////////////*/
+
+    modifier isSafeSigner(address smartAccount, address signer) {
+        address[] memory signers = SafeL2(payable(smartAccount)).getOwners();
+        bool isSigner = false;
+        for (uint256 i = 0; i < signers.length; i++) {
+            if (signers[i] == signer) {
+                isSigner = true;
+                break;
+            }
+        }
+        require(isSigner, "Signer not in Safe");
+        _;
+    }
+
+    modifier isModuleEnabled(address smartAccount) {
+        require(isInitialized(smartAccount), "Module uninintialized");
+        _;
+    }
 
     function setupRecovery(
         address smartAccount,
@@ -99,22 +136,36 @@ contract SafeModule is ERC7579ModuleBase {
         uint256[8] calldata proof
     )
         external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
     {
-        // check if msg.sender is member of the safe
-        // think about logic
-        require(proofsPerAccount[smartAccount][msg.sender] == 0, "Recovery already configurated");
-        require(recoveryEnabledForNullifier[smartAccount][msg.sender][nullifierHash], "Fuck");
+        require(
+            !smartAccounts[smartAccount].signers[msg.sender].recoveryEnabled,
+            "Recovery already configurated"
+        );
 
         worldId.verifyProof(
             root,
             groupId,
-            abi.encodePacked(signal).hashToField(),
+            abi.encodePacked(msg.sender).hashToField(),
             nullifierHash,
-            externalNullifierHash,
+            externalNullifier,
             proof
         );
 
-        proofsPerAccount[smartAccount][msg.sender] = 1;
+        smartAccounts[smartAccount].signers[msg.sender].recoveryEnabled = true;
+        smartAccounts[smartAccount].signers[msg.sender].recoveryTreshold = 1;
+        smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] = true;
+    }
+
+    function disableRecovery(address smartAccount)
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
+    {
+        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
+
+        delete smartAccounts[smartAccount].signers[msg.sender];
     }
 
     /**
@@ -123,42 +174,124 @@ contract SafeModule is ERC7579ModuleBase {
      * @dev This function is not part of the ERC-7579 standard
      *
      */
-    function tryRecover(
+    function tryRecovery(
         address smartAccount,
-        address signerToSwap,
+        address signerToRecover,
         uint256 root,
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
         external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, signerToRecover)
     {
-        // check if signerToSwap has recovery enabled
         require(
-            recoveryEnabledForNullifier[smartAccount][signerToSwap][nullifierHash],
-            "Fuck nullifier can't recover this signer"
+            isRecoveryEnabled(smartAccount, signerToRecover), "Recovery not enabled for this signer"
+        );
+        require(
+            smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash],
+            "User not authorized to recover this signer"
         );
 
         worldId.verifyProof(
             root,
             groupId,
-            abi.encodePacked(signal).hashToField(),
+            abi.encodePacked(address(0)).hashToField(),
             nullifierHash,
-            externalNullifierHash,
+            externalNullifier,
             proof
         );
 
-        // if tryRecoveryCount == treshold => exec the swap
-        // SafeL2(account).execTransactionFromModule(
-        //     account,
-        //     0,
-        //     abi.encodeWithSelector(
-        //         SafeL2(account).swapOwner.selector,
-        //         0x0000000000000000000000000000000000000001,
-        //         0xAfE56A12c037f3787637CDB7DeEcacf3080cb35d,
-        //         msg.sender
-        //     ),
-        //     Enum.Operation.Call
-        // );
+        smartAccounts[smartAccount].signers[signerToRecover].signaturesCount++;
+
+        if (
+            smartAccounts[smartAccount].signers[signerToRecover].signaturesCount
+                == smartAccounts[smartAccount].signers[signerToRecover].recoveryTreshold
+        ) {
+            SafeL2(payable(smartAccount)).execTransactionFromModule(
+                smartAccount,
+                0,
+                abi.encodeWithSelector(
+                    SafeL2(payable(smartAccount)).swapOwner.selector,
+                    0x0000000000000000000000000000000000000001, // old
+                    signerToRecover,
+                    msg.sender // new signer
+                ),
+                Enum.Operation.Call
+            );
+        }
+    }
+
+    function addRecoverUser(
+        address smartAccount,
+        uint256 root,
+        uint256 nullifierHash,
+        uint256[8] calldata proof
+    )
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
+    {
+        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
+        require(
+            !smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash],
+            "User already added to the list of recoverants"
+        );
+
+        worldId.verifyProof(
+            root,
+            groupId,
+            abi.encodePacked(address(0)).hashToField(),
+            nullifierHash,
+            externalNullifier,
+            proof
+        );
+
+        smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] = true;
+
+        emit RecoverUserAdded(smartAccount, msg.sender);
+    }
+
+    function removeRecoverUser(
+        address smartAccount,
+        uint256 nullifierHash
+    )
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
+    {
+        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
+        require(
+            smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash],
+            "User not in the list of recoverants"
+        );
+
+        smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] =
+            false;
+
+        emit RecoverUserRemoved(smartAccount, msg.sender);
+    }
+
+    /**
+     * Change the recovery threshold for a specific signer of a smart account
+     * @param smartAccount The smart account for which to change the threshold
+     * @param newThreshold The new threshold of required signatures
+     */
+    function changeRecoveryThreshold(
+        address payable smartAccount,
+        uint256 newThreshold
+    )
+        external
+        isModuleEnabled(smartAccount)
+        isSafeSigner(smartAccount, msg.sender)
+    {
+        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
+        require(newThreshold > 0, "Threshold cannot be lower or equal to 0");
+
+        smartAccounts[smartAccount].signers[msg.sender].recoveryTreshold = newThreshold;
+        smartAccounts[smartAccount].signers[msg.sender].signaturesCount = 0;
+
+        emit RecoveryThresholdChanged(smartAccount, msg.sender, newThreshold);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -195,6 +328,7 @@ contract SafeModule is ERC7579ModuleBase {
      * @return true if the module is of the given type, false otherwise
      */
     function isModuleType(uint256 typeID) external pure override returns (bool) {
-        return typeID == TYPE_HOOK;
+        return typeID == TYPE_VALIDATOR || typeID == TYPE_EXECUTOR || typeID == TYPE_FALLBACK
+            || typeID == TYPE_HOOK;
     }
 }
