@@ -28,8 +28,13 @@ export default function Home() {
     setPasskey(!passkey);
   };
 
-  const handleWorldID = (event: React.MouseEvent) => {
+  const handleWorldID = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const form = event.currentTarget
+    const formElements = form.elements as typeof form.elements & {
+      tryrecovery: {value: string}
+    }
+    console.log(formElements.tryrecovery.value)
     setMessages((prevMessages) => [...prevMessages, "hello"]);
   };
 
@@ -100,7 +105,12 @@ export default function Home() {
               <form className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Smart Wallet Address</Label>
-                  <Input className="text-black" id="name" placeholder="0x...." />
+                  <Input
+                    className="text-black"
+                    id="name"
+                    placeholder="0x...."
+                    onChange={(e) => setSafeAddress(e.target.value)}
+                  />
                 </div>
                 <div className="grid">
                   <Button
@@ -122,19 +132,10 @@ export default function Home() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form className="grid gap-4">
+              <form onSubmit={handleWorldID} className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Smart Wallet Address</Label>
-                  <Input id="name" placeholder="0x...." />
-                </div>
-                <div className="text-left">
-                  <Button
-                    className="border font-bold"
-                    type="submit"
-                    onClick={handleWorldID}
-                  >
-                    Add a World ID Recovery
-                  </Button>
+                  <Label htmlFor="tryrecovery">Smart Wallet Address</Label>
+                  <Input id="tryrecovery" placeholder="0x...." />
                 </div>
                 {messages.map((message, index) => (
                   <p key={index} className="text-white">
@@ -146,7 +147,7 @@ export default function Home() {
                     className="font-bold text-white bg-green-600"
                     type="submit"
                   >
-                    Recover
+                    Try Recover
                   </Button>
                 </div>
               </form>

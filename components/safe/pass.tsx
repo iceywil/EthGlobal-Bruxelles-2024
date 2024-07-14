@@ -20,25 +20,21 @@ function Create4337SafeAccount({ onSafeAddressSet }: { onSafeAddressSet: (addres
 	const [safeAddress, setSafeAddress] = useState<string | undefined>()
 	const [isSafeDeployed, setIsSafeDeployed] = useState<boolean>()
 	const [userOp, setUserOp] = useState<string | undefined>()
-	const [other, setOther] = useState<string | undefined>()
+	const [other, setOther] = useState<string>("")
 
 	const { address, isConnecting, isDisconnected } = useAccount();
-	let otherAdd = "";
 
 	const selectPasskeySigner = async (rawId: string, event: React.MouseEvent): Promise<void> => {
 		event.preventDefault();
 		console.log('selected passkey signer: ', rawId)
 		const passkey = getPasskeyFromRawId(rawId)
-		if (address)
-			otherAdd = address
-		else
-			otherAdd = ""
+		const otherAdd = address || "";
 		const safe4337Pack = await Safe4337Pack.init({
 			provider: RPC_URL,
 			signer: passkey,
 			bundlerUrl: BUNDLER_URL,
 			options: {
-				owners: [otherAdd],
+				owners:[],//[otherAdd],
 				threshold: 1
 			}
 		})
@@ -50,6 +46,8 @@ function Create4337SafeAccount({ onSafeAddressSet }: { onSafeAddressSet: (addres
 		setSafeAddress(safeAddress)
 		setIsSafeDeployed(isSafeDeployed)
 		setOther(otherAdd)
+		console.log('otherAdd', otherAdd)
+		console.log('other', other)
 
 		// Notify parent component of the safe address
 		onSafeAddressSet(safeAddress);
@@ -77,11 +75,16 @@ function Create4337SafeAccount({ onSafeAddressSet }: { onSafeAddressSet: (addres
 
 	const handleDeploy = async (event: React.MouseEvent): Promise<void> => {
 		event.preventDefault();
-		if (selectedPasskey && safeAddress && otherAdd) {
+		console.log('Deploying safe...')
+		console.log('selectedPasskey', selectedPasskey)	
+		console.log('safeAddress', safeAddress)
+		console.log('otherAdd', other)
+		if (selectedPasskey && safeAddress && other) {
+			console.log('Deploying WB...')
 			await mintNFT({
 				signer: selectedPasskey,
 				safeAddress,
-				other: otherAdd
+				other
 			}).then(userOpHash => {
 				setUserOp(userOpHash)
 				setIsSafeDeployed(true)
@@ -134,7 +137,7 @@ function Create4337SafeAccount({ onSafeAddressSet }: { onSafeAddressSet: (addres
 							<div>
 								Done! Check the transaction status on{' '}
 								<a
-									href={`//https://eth-sepolia.blockscout.com/op/${userOp}`}
+									href={`https://eth-sepolia.blockscout.com/op/${userOp}`}
 									target='_blank'
 									rel='noreferrer'
 								>

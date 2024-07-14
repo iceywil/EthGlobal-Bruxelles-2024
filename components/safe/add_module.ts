@@ -19,13 +19,16 @@ export default async function addModule(rawId: string, coordinates: PasskeyCoord
 	  //const provider = await getProvider();
 
 	  const protocolKit = await Safe.init({
-		provider: "wss://ethereum-sepolia-rpc.publicnode.com",
+		provider: "https://ethereum-sepolia-rpc.publicnode.com",
 		signer: passkey,
 		safeAddress,
 	  })
 
 	const safeTransaction = await protocolKit.createEnableModuleTx(moduleAddress)
-	const txResponse = await protocolKit.executeTransaction(safeTransaction)
+	const txHash = await protocolKit.getTransactionHash(safeTransaction)
+	const signature = await protocolKit.signHash(txHash)
+	const signedSafeTransaction = await protocolKit.signTransaction(safeTransaction)
+	const txResponse = await protocolKit.executeTransaction(signedSafeTransaction)
 	let result = await (txResponse.transactionResponse as { wait: () => Promise<any> })?.wait()
 
 	return result

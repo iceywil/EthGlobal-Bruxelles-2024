@@ -1,66 +1,68 @@
 'use client';
 
-import { IDKitWidget } from '@worldcoin/idkit';
+import { IDKitWidget, useIDKit } from '@worldcoin/idkit';
 import { useState } from 'react';
 
 import {
-    useAccount,
-    useConnect,
-    usePrepareTransactionRequest,
-    useSendTransaction,
-    type UsePrepareTransactionRequestReturnType
+	BaseError,
+	useAccount,
+	useConnect,
+	usePrepareTransactionRequest,
+	useSendTransaction,
+	useWaitForTransactionReceipt,
+	useWriteContract,
+	type UsePrepareTransactionRequestReturnType
 } from 'wagmi';
 import { ethers } from 'ethers';
 
-const onSuccess = (response: any) => {
-    console.log('Proof Generated:', response);
-
-    const account = useAccount();
-    console.log('Account:', account);
-
-    let toAddress: any = process.env.CONTRACT
-
-    const tx = usePrepareTransactionRequest({
-        account: '0xFEUR',
-        to: toAddress,
-        value: ethers.parseEther('1'),
-        data: '0x',
-    })
 
 
-    /*
-    const handleSendTransaction = async () => {
-        try {
-            const tx = await sendTransaction?.();
-            if (tx) {
-                console.log('Transaction sent:', tx);
-            }
-        } catch (error) {
-            console.error('Error sending transaction:', error);
-        }
-    };
-     */
+const ProofComponent = (onSuccess: any, onError: any) => {
+	const account = useAccount();
+	const { setOpen } = useIDKit();
+	const [done, setDone] = useState(false);
+	const {
+		data: hash,
+		isPending,
+		error,
+		writeContractAsync,
+	} = useWriteContract();
+	const { isLoading: isConfirming, isSuccess: isConfirmed } =
+		useWaitForTransactionReceipt({
+			hash,
+		});
 
-    verifyProof(response);
-};
+	return (
+		<div>
+			{account.isConnected && (
+				<>
+					<IDKitWidget
+						app_id="app_staging_3b82cdc9af8f0dc0fe86a65cd3e0ee70"
+						action="validate"
+						signal={account.address}
+						onSuccess={onSuccess}
+						onError={onError}
+						autoClose
+					>
+						{({ open }) => <button onClick={open}>Verify with World ID</button>}
+					</IDKitWidget>
+					{!done && (
+						<button onClick={() => setOpen(true)}>
+							{!hash &&
+								(isPending
+									? "Pending, please check your wallet..."
+									: "Verify and Execute Transaction")}
+						</button>
+					)}
 
-const verifyProof = (proof: any) => {
-
-}
-
-const ProofComponent = () => {
-    const { address } = useAccount(); // Extract address from useAccount
-
-    return (
-        <IDKitWidget
-            app_id="app_staging_3b82cdc9af8f0dc0fe86a65cd3e0ee70" // must be an app set to on-chain in Developer Portal
-            action="validate"
-            signal={address} // proof will only verify if the signal is unchanged, this prevents tampering
-            onSuccess={onSuccess} // use onSuccess to call your smart contract
-        >
-            {({ open }) => <button onClick={open}>Verify with World ID</button>}
-        </IDKitWidget>
-    );
+					{hash && <p>Transaction Hash: {hash}</p>}
+					{isConfirming && <p>Waiting for confirmation...</p>}
+					{isConfirmed && <p>Transaction confirmed.</p>}
+					{error && <p>Error: {(error as BaseError).message}</p>}
+				</>
+			)}
+		</div>
+	);
 };
 
 export default ProofComponent;
