@@ -239,6 +239,12 @@ export default function Home() {
 					)[0],
 				],
 			});
+			toast({
+				variant: "default",
+				title: "Transaction confirmed",
+				description: "",
+				action: <ToastAction altText="View transaction"><Link href={`https://eth-sepolia.blockscout.com/tx/${hash}`} target="_blank"></Link></ToastAction>
+			})
 		} catch (error) {
 			toast({
 				variant: "destructive",
@@ -284,12 +290,6 @@ export default function Home() {
 			<h1 className="text-4xl py-10 font-bold text-center text-white">
 				Dashboard
 			</h1>
-			<Button onClick={() => toast({
-				variant: "default",
-				title: "Transaction confirmed",
-				description: "",
-				action: <ToastAction altText="View transaction"><Link href={`https://eth-sepolia.blockscout.com/tx/${hash}`} target="_blank"></Link></ToastAction>
-			})}> Toast</Button>
 			<div className="flex justify-center px-10 pt-10 space-x-4 max-h-[26em]">
 				<section className="grid grid-cols-1 gap-6 md:grid-cols-3">
 
