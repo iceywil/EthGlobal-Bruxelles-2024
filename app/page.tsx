@@ -35,7 +35,7 @@ export default function Home() {
 
 			<div className="flex-1 flex items-center justify-center">
 				<div className="text-center">
-					Built on <span className="font-bold text-[#35c184]">Base</span>, powered by <span className="font-bold text-[#35c184]">Safe</span>, enlightened by <span className="font-bold text-[#35c184]">Blockscout</span> and secured by <span className="font-bold text-[#35c184]">WorldCoin</span>
+					 Powered by <span className="font-bold text-[#35c184]">Safe</span>, enhanced by <span className="font-bold text-[#35c184]">Blockscout</span> and secured by <span className="font-bold text-[#35c184]">WorldCoin</span>
 				</div>
 			</div>
 		</main >
