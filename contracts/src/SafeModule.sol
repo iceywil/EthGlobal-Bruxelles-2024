@@ -9,6 +9,10 @@ import { ModeLib } from "erc7579/lib/ModeLib.sol";
 import { ByteHasher } from "./helpers/ByteHasher.sol";
 import { IWorldID } from "./interfaces/IWorldID.sol";
 
+/**
+ * @title SafeModule
+ * @dev A module for managing recovery and inheritance for Safe accounts using WorldID and biometrics.
+ */
 contract SafeModule is ERC7579ModuleBase {
     using ByteHasher for bytes;
 
@@ -55,54 +59,46 @@ contract SafeModule is ERC7579ModuleBase {
             "init-safe"
         ).hashToField();
     }
+
     /*//////////////////////////////////////////////////////////////////////////
                                      CONFIG
     //////////////////////////////////////////////////////////////////////////*/
 
     /**
-     * Initialize the module with the given data
-     *
+     * @dev Initialize the module with the given data
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
-        // if (isInitialized(msg.sender)) {
-        //     if (data.length == 0) {
-        //         return;
-        //     } else {
-        //         revert("ModuleAlreadyInitialized");
-        //     }
-        // }
-
         smartAccounts[msg.sender].moduleEnabled = true;
-
         emit ModuleInitialized(msg.sender);
     }
 
     /**
-     * De-initialize the module with the given data
-     *
+     * @dev De-initialize the module with the given data
      * @param data The data to de-initialize the module with
      */
     function onUninstall(bytes calldata data) external override {
-        require(isInitialized(msg.sender), "Module already uninstalled");
-
+        if (!isInitialized(msg.sender)) revert("Module already uninstalled");
         smartAccounts[msg.sender].moduleEnabled = false;
-
         delete smartAccounts[msg.sender];
-
         emit ModuleUninitialized(msg.sender);
     }
 
     /**
-     * Check if the module is initialized
+     * @dev Check if the module is initialized
      * @param smartAccount The smart account to check
-     *
      * @return true if the module is initialized, false otherwise
      */
     function isInitialized(address smartAccount) public view returns (bool) {
         return smartAccounts[smartAccount].moduleEnabled;
     }
 
+    /**
+     * @dev Check if recovery is enabled for a specific signer
+     * @param smartAccount The smart account to check
+     * @param signer The signer to check
+     * @return true if recovery is enabled, false otherwise
+     */
     function isRecoveryEnabled(address smartAccount, address signer) public view returns (bool) {
         return smartAccounts[smartAccount].signers[signer].recoveryEnabled;
     }
@@ -120,29 +116,37 @@ contract SafeModule is ERC7579ModuleBase {
                 break;
             }
         }
-        require(isSigner, "Signer not in Safe");
+        if (!isSigner) {
+            revert("Signer not in Safe");
+        }
         _;
     }
 
     modifier isModuleEnabled(address smartAccount) {
-        require(isInitialized(smartAccount), "Module uninintialized");
+        if (!isInitialized(smartAccount)) {
+            revert("Module uninintialized");
+        }
         _;
     }
 
+    /**
+     * @dev Set up recovery for a smart account
+     * @param smartAccount The smart account to set up recovery for
+     * @param root The root of the Merkle tree
+     * @param nullifierHash The nullifier hash
+     * @param proof The zero-knowledge proof
+     */
     function setupRecovery(
         address smartAccount,
         uint256 root,
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
-        external
-        isModuleEnabled(smartAccount)
-        isSafeSigner(smartAccount, msg.sender)
+    external
+    isModuleEnabled(smartAccount)
+    isSafeSigner(smartAccount, msg.sender)
     {
-        require(
-            !smartAccounts[smartAccount].signers[msg.sender].recoveryEnabled,
-            "Recovery already configurated"
-        );
+        if (smartAccounts[smartAccount].signers[msg.sender].recoveryEnabled) revert("Recovery already configurated");
 
         worldId.verifyProof(
             root,
@@ -158,21 +162,26 @@ contract SafeModule is ERC7579ModuleBase {
         smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] = true;
     }
 
+    /**
+     * @dev Disable recovery for a smart account
+     * @param smartAccount The smart account to disable recovery for
+     */
     function disableRecovery(address smartAccount)
-        external
-        isModuleEnabled(smartAccount)
-        isSafeSigner(smartAccount, msg.sender)
+    external
+    isModuleEnabled(smartAccount)
+    isSafeSigner(smartAccount, msg.sender)
     {
-        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
-
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
         delete smartAccounts[smartAccount].signers[msg.sender];
     }
 
     /**
-     * Execute the given data
-     * @dev This is an example function that can be used to execute arbitrary data
-     * @dev This function is not part of the ERC-7579 standard
-     *
+     * @dev Try to recover a smart account
+     * @param smartAccount The smart account to recover
+     * @param signerToRecover The signer to recover
+     * @param root The root of the Merkle tree
+     * @param nullifierHash The nullifier hash
+     * @param proof The zero-knowledge proof
      */
     function tryRecovery(
         address smartAccount,
@@ -181,17 +190,12 @@ contract SafeModule is ERC7579ModuleBase {
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
-        external
-        isModuleEnabled(smartAccount)
-        isSafeSigner(smartAccount, signerToRecover)
+    external
+    isModuleEnabled(smartAccount)
+    isSafeSigner(smartAccount, signerToRecover)
     {
-        require(
-            isRecoveryEnabled(smartAccount, signerToRecover), "Recovery not enabled for this signer"
-        );
-        require(
-            smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash],
-            "User not authorized to recover this signer"
-        );
+        if (!isRecoveryEnabled(smartAccount, signerToRecover)) revert("Recovery not enabled for this signer");
+        if (!smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash]) revert("User not authorized to recover this signer");
 
         worldId.verifyProof(
             root,
@@ -206,7 +210,7 @@ contract SafeModule is ERC7579ModuleBase {
 
         if (
             smartAccounts[smartAccount].signers[signerToRecover].signaturesCount
-                == smartAccounts[smartAccount].signers[signerToRecover].recoveryTreshold
+            == smartAccounts[smartAccount].signers[signerToRecover].recoveryTreshold
         ) {
             SafeL2(payable(smartAccount)).execTransactionFromModule(
                 smartAccount,
@@ -222,21 +226,25 @@ contract SafeModule is ERC7579ModuleBase {
         }
     }
 
+    /**
+     * @dev Add a user to the recovery list
+     * @param smartAccount The smart account to add the user to
+     * @param root The root of the Merkle tree
+     * @param nullifierHash The nullifier hash
+     * @param proof The zero-knowledge proof
+     */
     function addRecoverUser(
         address smartAccount,
         uint256 root,
         uint256 nullifierHash,
         uint256[8] calldata proof
     )
-        external
-        isModuleEnabled(smartAccount)
-        isSafeSigner(smartAccount, msg.sender)
+    external
+    isModuleEnabled(smartAccount)
+    isSafeSigner(smartAccount, msg.sender)
     {
-        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
-        require(
-            !smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash],
-            "User already added to the list of recoverants"
-        );
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
+        if (smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash]) revert("User already added to the list of recoverants");
 
         worldId.verifyProof(
             root,
@@ -252,28 +260,29 @@ contract SafeModule is ERC7579ModuleBase {
         emit RecoverUserAdded(smartAccount, msg.sender);
     }
 
+    /**
+     * @dev Remove a user from the recovery list
+     * @param smartAccount The smart account to remove the user from
+     * @param nullifierHash The nullifier hash
+     */
     function removeRecoverUser(
         address smartAccount,
         uint256 nullifierHash
     )
-        external
-        isModuleEnabled(smartAccount)
-        isSafeSigner(smartAccount, msg.sender)
+    external
+    isModuleEnabled(smartAccount)
+    isSafeSigner(smartAccount, msg.sender)
     {
-        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
-        require(
-            smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash],
-            "User not in the list of recoverants"
-        );
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
+        if (!smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash]) revert("User not in the list of recoverants");
 
-        smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] =
-            false;
+        smartAccounts[smartAccount].signers[msg.sender].nullifierHashesTrusted[nullifierHash] = false;
 
         emit RecoverUserRemoved(smartAccount, msg.sender);
     }
 
     /**
-     * Change the recovery threshold for a specific signer of a smart account
+     * @dev Change the recovery threshold for a specific signer of a smart account
      * @param smartAccount The smart account for which to change the threshold
      * @param newThreshold The new threshold of required signatures
      */
@@ -281,12 +290,12 @@ contract SafeModule is ERC7579ModuleBase {
         address payable smartAccount,
         uint256 newThreshold
     )
-        external
-        isModuleEnabled(smartAccount)
-        isSafeSigner(smartAccount, msg.sender)
+    external
+    isModuleEnabled(smartAccount)
+    isSafeSigner(smartAccount, msg.sender)
     {
-        require(isRecoveryEnabled(smartAccount, msg.sender), "Recovery not enabled for this signer");
-        require(newThreshold > 0, "Threshold cannot be lower or equal to 0");
+        if (!isRecoveryEnabled(smartAccount, msg.sender)) revert("Recovery not enabled for this signer");
+        if (newThreshold <= 0) revert("Threshold cannot be lower or equal to 0");
 
         smartAccounts[smartAccount].signers[msg.sender].recoveryTreshold = newThreshold;
         smartAccounts[smartAccount].signers[msg.sender].signaturesCount = 0;
@@ -303,8 +312,7 @@ contract SafeModule is ERC7579ModuleBase {
     //////////////////////////////////////////////////////////////////////////*/
 
     /**
-     * The name of the module
-     *
+     * @dev The name of the module
      * @return name The name of the module
      */
     function name() external pure returns (string memory) {
@@ -312,8 +320,7 @@ contract SafeModule is ERC7579ModuleBase {
     }
 
     /**
-     * The version of the module
-     *
+     * @dev The version of the module
      * @return version The version of the module
      */
     function version() external pure returns (string memory) {
@@ -321,10 +328,8 @@ contract SafeModule is ERC7579ModuleBase {
     }
 
     /**
-     * Check if the module is of a certain type
-     *
+     * @dev Check if the module is of a certain type
      * @param typeID The type ID to check
-     *
      * @return true if the module is of the given type, false otherwise
      */
     function isModuleType(uint256 typeID) external pure override returns (bool) {
