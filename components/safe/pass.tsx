@@ -15,7 +15,7 @@ import {
 	storePasskeyInLocalStorage
 } from '../../lib/passkeys'
 
-function Create4337SafeAccount() {
+function Create4337SafeAccount({ onSafeAddressSet }: { onSafeAddressSet: (address: string) => void }) {
 	const [selectedPasskey, setSelectedPasskey] = useState<PasskeyArgType | undefined>()
 	const [safeAddress, setSafeAddress] = useState<string | undefined>()
 	const [isSafeDeployed, setIsSafeDeployed] = useState<boolean>()
@@ -50,6 +50,9 @@ function Create4337SafeAccount() {
 		setSafeAddress(safeAddress)
 		setIsSafeDeployed(isSafeDeployed)
 		setOther(otherAdd)
+
+		// Notify parent component of the safe address
+		onSafeAddressSet(safeAddress);
 
 		return Promise.resolve();
 	}

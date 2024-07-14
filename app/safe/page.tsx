@@ -5,15 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useAccount } from "wagmi";
-import { useState } from "react";
+import { useEffect, useState } from 'react'
 import Create4337SafeAccount from "@/components/safe/pass";
+import addModule from "@/components/safe/add_module";
+import {
+	createPasskey,
+	loadPasskeysFromLocalStorage,
+	storePasskeyInLocalStorage
+} from '../../lib/passkeys'
+import { PasskeyArgType } from '@safe-global/protocol-kit'
 
 export default function Home() {
   const { address, isConnecting, isDisconnected } = useAccount();
   const [passkey, setPasskey] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
+  const [passkeyList, setPasskeyList] = useState<PasskeyArgType[]>([]);
+  const [safeAddress, setSafeAddress] = useState<string | undefined>();
 
   const handleClick = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -23,6 +31,26 @@ export default function Home() {
   const handleWorldID = (event: React.MouseEvent) => {
     event.preventDefault();
     setMessages((prevMessages) => [...prevMessages, "hello"]);
+  };
+
+  function refreshPasskeyList() {
+    const passkeys = loadPasskeysFromLocalStorage();
+    setPasskeyList(passkeys);
+  }
+
+  useEffect(() => {
+    refreshPasskeyList();
+  }, []);
+
+  const handleModule = (event: React.MouseEvent) => {
+    event.preventDefault();
+    const passkeys = loadPasskeysFromLocalStorage();
+    setPasskeyList(passkeys);
+    if (safeAddress) {
+      addModule(passkeys[0].rawId, passkeys[0].coordinates, safeAddress);
+    } else {
+      console.error("Safe address is undefined");
+    }
   };
 
   return (
@@ -44,9 +72,7 @@ export default function Home() {
             <CardContent>
               <form className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">
-                    Owner Wallet Address
-                  </Label>
+                  <Label htmlFor="name">Owner Wallet Address</Label>
                   <div>{address}</div>
                 </div>
                 <div className="text-left">
@@ -58,9 +84,7 @@ export default function Home() {
                     Enable PassKey
                   </Button>
                 </div>
-				{passkey && <Create4337SafeAccount />}
-
-                
+                {passkey && <Create4337SafeAccount onSafeAddressSet={setSafeAddress} />}
               </form>
             </CardContent>
           </Card>
@@ -76,32 +100,18 @@ export default function Home() {
               <form className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Smart Wallet Address</Label>
-                  <Input id="name" placeholder="0x...." />
+                  <Input className="text-black" id="name" placeholder="0x...." />
                 </div>
-				<div className="text-left">
-                  <Button
-                    className="border font-bold"
-                    type="submit"
-                    onClick={handleWorldID}
-                  >
-                    Add a World ID Recovery
-                  </Button>
-                </div>
-				{messages.map((message, index) => (
-                  <p key={index} className="text-white">
-                    {message}
-                  </p>
-                ))}
                 <div className="grid">
                   <Button
                     className="font-bold text-white bg-green-600"
                     type="submit"
+                    onClick={handleModule}
                   >
-                    Add
+                    Add Recovery Module
                   </Button>
                 </div>
               </form>
-			  
             </CardContent>
           </Card>
           <Card>
@@ -113,11 +123,11 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <form className="grid gap-4">
-			  <div className="grid gap-2">
+                <div className="grid gap-2">
                   <Label htmlFor="name">Smart Wallet Address</Label>
                   <Input id="name" placeholder="0x...." />
                 </div>
-				<div className="text-left">
+                <div className="text-left">
                   <Button
                     className="border font-bold"
                     type="submit"
@@ -126,7 +136,7 @@ export default function Home() {
                     Add a World ID Recovery
                   </Button>
                 </div>
-				{messages.map((message, index) => (
+                {messages.map((message, index) => (
                   <p key={index} className="text-white">
                     {message}
                   </p>
