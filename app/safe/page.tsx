@@ -122,6 +122,106 @@ export default function Home() {
     // setMessages((prevMessages) => [...prevMessages, "hello"]);
   };
 
+  const handleAddRecoverUser = async(proof: ISuccessResult) => {
+    try {
+      await writeContractAsync({
+        address: "0x4624fFEB58e86dc941D8b65878eE7E8ad3533e16",
+        account: address!,
+        abi,
+        functionName: "addRecoverUser",
+        args: [
+          recoveringSafeAddress,
+          BigInt(proof!.merkle_root),
+          BigInt(proof!.nullifier_hash),
+          decodeAbiParameters(
+            parseAbiParameters("uint256[8]"),
+            proof!.proof as `0x${string}`
+          )[0],
+        ],
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your request. (handleAddRecoverUser)",
+      })
+    }
+
+    setEnablingModule(false);
+    // setMessages((prevMessages) => [...prevMessages, "hello"]);
+  }
+
+  const handleRemoveRecoverUser = async(proof: ISuccessResult) => {
+    try {
+      await writeContractAsync({
+        address: "0x4624fFEB58e86dc941D8b65878eE7E8ad3533e16",
+        account: address!,
+        abi,
+        functionName: "removeRecoverUser",
+        args: [
+          recoveringSafeAddress,
+          BigInt(proof!.nullifier_hash),
+        ],
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your request. (handleRemoveRecoverUser)",
+      })
+    }
+
+    setEnablingModule(false);
+    // setMessages((prevMessages) => [...prevMessages, "hello"]);
+  }
+
+  const handleChangeRecoveryThresold = async(threshold: number) => {
+    try {
+      await writeContractAsync({
+        address: "0x4624fFEB58e86dc941D8b65878eE7E8ad3533e16",
+        account: address!,
+        abi,
+        functionName: "changeRecoveryThreshold",
+        args: [
+          recoveringSafeAddress,
+          threshold,
+        ],
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your request. (handleChangeRecoveryThresold)",
+      })
+    }
+
+    setEnablingModule(false);
+    // setMessages((prevMessages) => [...prevMessages, "hello"]);
+  }
+
+  const handleDisableRecovery = async() => {
+    try {
+      await writeContractAsync({
+        address: "0x4624fFEB58e86dc941D8b65878eE7E8ad3533e16",
+        account: address!,
+        abi,
+        functionName: "disableRecovery",
+        args: [
+          recoveringSafeAddress,
+        ],
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your request. (handleDisableRecovery)",
+      })
+    }
+
+    setEnablingModule(false);
+    // setMessages((prevMessages) => [...prevMessages, "hello"]);
+  }
+
   const handleAddRecovery = async(proof: ISuccessResult) => {
     try {
       await writeContractAsync({
@@ -143,7 +243,7 @@ export default function Home() {
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",
-        description: "There was a problem with your request.",
+        description: "There was a problem with your request. (handleAddRecovery)",
       })
     }
 
@@ -188,7 +288,7 @@ export default function Home() {
           variant: "default",
           title: "Transaction confirmed",
           description: "",
-          action: <ToastAction altText="View tx"><Link href={`https://eth-sepolia.blockscout.com/tx/${hash}`} target="_blank"></Link></ToastAction>
+          action: <ToastAction altText="View transaction"><Link href={`https://eth-sepolia.blockscout.com/tx/${hash}`} target="_blank"></Link></ToastAction>
         })}> Toast</Button>
       <div className="flex justify-center px-10 pt-10 space-x-4 max-h-[26em]">
         <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
