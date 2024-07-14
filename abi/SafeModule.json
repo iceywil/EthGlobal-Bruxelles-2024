@@ -1,0 +1,250 @@
+[
+	{ "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" }
+	  ],
+	  "name": "AlreadyInitialized",
+	  "type": "error"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" }
+	  ],
+	  "name": "NotInitialized",
+	  "type": "error"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "smartAccount",
+		  "type": "address"
+		}
+	  ],
+	  "name": "ModuleInitialized",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "smartAccount",
+		  "type": "address"
+		}
+	  ],
+	  "name": "ModuleUninitialized",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "smartAccount",
+		  "type": "address"
+		},
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "signer",
+		  "type": "address"
+		}
+	  ],
+	  "name": "RecoverUserAdded",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "smartAccount",
+		  "type": "address"
+		},
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "signer",
+		  "type": "address"
+		}
+	  ],
+	  "name": "RecoverUserRemoved",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "smartAccount",
+		  "type": "address"
+		},
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "signer",
+		  "type": "address"
+		},
+		{
+		  "indexed": false,
+		  "internalType": "uint256",
+		  "name": "newThreshold",
+		  "type": "uint256"
+		}
+	  ],
+	  "name": "RecoveryThresholdChanged",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": false,
+		  "internalType": "uint256",
+		  "name": "nullifierHash",
+		  "type": "uint256"
+		}
+	  ],
+	  "name": "Verified",
+	  "type": "event"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" },
+		{ "internalType": "uint256", "name": "root", "type": "uint256" },
+		{ "internalType": "uint256", "name": "nullifierHash", "type": "uint256" },
+		{ "internalType": "uint256[8]", "name": "proof", "type": "uint256[8]" }
+	  ],
+	  "name": "addRecoverUser",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{
+		  "internalType": "address payable",
+		  "name": "smartAccount",
+		  "type": "address"
+		},
+		{ "internalType": "uint256", "name": "newThreshold", "type": "uint256" }
+	  ],
+	  "name": "changeRecoveryThreshold",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" }
+	  ],
+	  "name": "disableRecovery",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" }
+	  ],
+	  "name": "isInitialized",
+	  "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+	  "stateMutability": "view",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "uint256", "name": "typeID", "type": "uint256" }
+	  ],
+	  "name": "isModuleType",
+	  "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+	  "stateMutability": "pure",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" },
+		{ "internalType": "address", "name": "signer", "type": "address" }
+	  ],
+	  "name": "isRecoveryEnabled",
+	  "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+	  "stateMutability": "view",
+	  "type": "function"
+	},
+	{
+	  "inputs": [],
+	  "name": "name",
+	  "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+	  "stateMutability": "pure",
+	  "type": "function"
+	},
+	{
+	  "inputs": [{ "internalType": "bytes", "name": "data", "type": "bytes" }],
+	  "name": "onInstall",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [{ "internalType": "bytes", "name": "data", "type": "bytes" }],
+	  "name": "onUninstall",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" },
+		{ "internalType": "uint256", "name": "nullifierHash", "type": "uint256" }
+	  ],
+	  "name": "removeRecoverUser",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" },
+		{ "internalType": "uint256", "name": "root", "type": "uint256" },
+		{ "internalType": "uint256", "name": "nullifierHash", "type": "uint256" },
+		{ "internalType": "uint256[8]", "name": "proof", "type": "uint256[8]" }
+	  ],
+	  "name": "setupRecovery",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{ "internalType": "address", "name": "smartAccount", "type": "address" },
+		{
+		  "internalType": "address",
+		  "name": "signerToRecover",
+		  "type": "address"
+		},
+		{ "internalType": "uint256", "name": "root", "type": "uint256" },
+		{ "internalType": "uint256", "name": "nullifierHash", "type": "uint256" },
+		{ "internalType": "uint256[8]", "name": "proof", "type": "uint256[8]" }
+	  ],
+	  "name": "tryRecovery",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [],
+	  "name": "version",
+	  "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+	  "stateMutability": "pure",
+	  "type": "function"
+	}
+  ]
+  

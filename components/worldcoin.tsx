@@ -14,27 +14,17 @@ import {
 	type UsePrepareTransactionRequestReturnType
 } from 'wagmi';
 import { ethers } from 'ethers';
+import { Button } from './ui/button';
 
 
 
-const ProofComponent = (onSuccess: any, onError: any) => {
+const ProofComponent = ({onSuccess, onError, show, setShow}: {onSuccess: any, onError: any, show: boolean, setShow: any}) => {
 	const account = useAccount();
 	const { setOpen } = useIDKit();
-	const [done, setDone] = useState(false);
-	const {
-		data: hash,
-		isPending,
-		error,
-		writeContractAsync,
-	} = useWriteContract();
-	const { isLoading: isConfirming, isSuccess: isConfirmed } =
-		useWaitForTransactionReceipt({
-			hash,
-		});
 
 	return (
 		<div>
-			{account.isConnected && (
+			{show && account.isConnected && (
 				<>
 					<IDKitWidget
 						app_id="app_staging_3b82cdc9af8f0dc0fe86a65cd3e0ee70"
@@ -44,21 +34,9 @@ const ProofComponent = (onSuccess: any, onError: any) => {
 						onError={onError}
 						autoClose
 					>
-						{({ open }) => <button onClick={open}>Verify with World ID</button>}
+						{({ open }) => <div className='grid gap-4'><Button onClick={open} className="font-bold text-white bg-green-600 w-full">Verify with World ID</Button><Button onClick={() => setShow(false)} className="font-bold text-white border w-full">Stop verification</Button></div>}
+		
 					</IDKitWidget>
-					{!done && (
-						<button onClick={() => setOpen(true)}>
-							{!hash &&
-								(isPending
-									? "Pending, please check your wallet..."
-									: "Verify and Execute Transaction")}
-						</button>
-					)}
-
-					{hash && <p>Transaction Hash: {hash}</p>}
-					{isConfirming && <p>Waiting for confirmation...</p>}
-					{isConfirmed && <p>Transaction confirmed.</p>}
-					{error && <p>Error: {(error as BaseError).message}</p>}
 				</>
 			)}
 		</div>
